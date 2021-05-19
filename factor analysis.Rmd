@@ -1,0 +1,208 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+
+
+```{r}
+library(rethinking)
+library(tidyverse)
+library(sjmisc)
+library(lmerTest)
+library(ggpubr)
+library(simr)
+library(MuMIn)
+library(car)
+library(brms)
+library(psych)
+library(tidybayes)
+
+```
+
+
+
+
+
+```{r}
+#probit model:
+
+dataprob = function(n){
+hej = NULL
+hej1 = NULL
+hej2 = NULL
+hej3 = NULL
+hej4 = NULL
+hej5 = NULL
+
+
+for (r in 1:n){
+hej = data.frame(id = rep(r,3))
+hej1 = data.frame(con = rep(c("p","n","c"),1))
+
+hej2 = cbind(hej, hej1)
+hej3 = rbind(hej2, hej3)
+
+}
+
+hej4 = hej3
+
+hej5 = rbind(hej4,hej3)
+hej5 = rbind(hej5,hej3)
+
+hej5$id = sort(hej5$id)
+
+hej5$question = rep(c(rep(1,3),rep(2,3),rep(3,3)),n)
+
+res1 = NULL
+#effects should be 0.2 not 1.
+for (x in 1:n){
+res = data.frame(value = c(round(rnorm(1, 4+rnorm(1,0.25,1), 1)),
+                           round(rnorm(1, 4+rnorm(1,-0.25,1), 1)),
+                           round(rnorm(1, 4, 1)),
+                   
+                           round(rnorm(1, 4+rnorm(1,0.25,1), 1)),
+                           round(rnorm(1, 4+rnorm(1,-0.25,1), 1)),
+                           round(rnorm(1, 4, 1)),
+                  
+                           round(rnorm(1, 4+rnorm(1,0.25,1), 1)),
+                           round(rnorm(1, 4+rnorm(1,-0.25,1), 1)),
+                           round(rnorm(1, 4, 1))))
+
+res1 = rbind(res1,res)
+
+}
+res1$value = ifelse(res1$value<=0,1,
+                    ifelse(res1$value>7,7,res1$value))
+
+hej5$value = res1$value
+
+hej <<- hej5
+}
+dataprob(30)
+
+bprob = bf(value ~ 1+con+(1|id)+(1|question), family = cumulative("probit"))#+lf(disc~0+con, cmc = FALSE)
+
+#View(get_prior(bprob, data = hej))
+
+
+#change prior for sd in class b to 0.5
+prior_probit = c(
+   prior(normal(0,0.5), class = b),
+   #prior(normal(0,0.5), class = b, coef = conp),
+   #prior(normal(0,0.5), class = b, coef = conn),
+   prior(normal(0,4), class = Intercept),
+   #prior(normal(0,1), class = Intercept, coef = 1),
+   #prior(normal(0,1), class = Intercept, coef = 2),
+   #prior(normal(0,1), class = Intercept, coef = 3),
+   #prior(normal(0,1), class = Intercept, coef = 4),
+   prior(normal(1,0.5), class = sd, group = id),
+   prior(normal(1,0.5), class = sd, group = question),
+   prior(normal(1,0.5), class = sd))
+
+
+probit_model = brm(
+  bprob,
+  hej,
+  family = cumulative("probit"),
+  sample_prior = F,
+  prior = prior_probit,
+    control=list(
+    adapt_delta = 0.99,
+    max_treedepth = 20),
+#  file = "probit_model_big",
+)
+
+
+simulation = 75
+p = 1
+q = 1:simulation
+prob_ana = function(n){
+for (l in rep(n, simulation)){
+
+  dataprob(l)
+probit_model = update(probit_model, newdata = hej)
+
+q[p] <<- hypothesis(probit_model, "conp>conn")$hypothesis[4]
+
+p = p + 1
+}}
+
+for (e in c(20,25)){
+  prob_ana(e)
+data.frame(assign(paste("n",e,sep = ""), q))
+
+}
+
+
+nn = data.frame(c(n10,n15,n20,n25,n30,n35,n40))
+
+write.csv(nn, "5data.csv")
+
+```
+
+
+
+
+```{r}
+#factor analysis
+library(lavaan)
+
+dataprob(30)
+hej1  = pivot_wider(data, names_from="question", values_from = "value")
+
+
+names(hej1)[3] = "ques1"
+names(hej1)[4] = "ques2"
+names(hej1)[5] = "ques3"
+
+model1 = 'f1 =~jeg_følte + det_gav + det_var'
+
+fit = cfa(model1, data = php2, ordered = TRUE)
+
+summary(fit, fit.measures = TRUE, standardized = TRUE)
+
+
+hej1 = hej1[,c(3,4,5)]
+
+polychoric(hej1)
+
+pca(hej1, nfactors = 1)
+
+alpha(hej1, check.keys = T)
+
+plot(fa.parallel(hej1, cor = "poly"))
+
+cor.plot(hej1)
+
+
+
+```
+
+
+
+
+
+```{r}
+
+
+factor = pivot_wider(data, values_from = value, names_from = name)
+
+
+model1 = 'f1 =~jeg_følte + det_gav + det_var'
+
+fit = cfa(model1, data = factor, ordered = TRUE)
+
+summary(fit, fit.measures = TRUE, standardized = TRUE)
+
+
+
+```
+
