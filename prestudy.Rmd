@@ -29,50 +29,47 @@ When you click the **Knit** button a document will be generated that includes bo
 
 
 ```{r}
+#load the pilot-study data
 ii = read.csv("Bedømmelse af kommentarer.csv")
 
 
+#formatting
 ii$Tidsstempel = as.factor(ii$Tidsstempel)
-
-
 ii = ii %>% rename(id = Tidsstempel)
-
 ii$id = as.numeric(ii$id)
 ii$id = as.factor(ii$id)
-
-
 ii[sapply(ii, is.character)] <- lapply(ii[sapply(ii, is.character)], 
                                        as.factor)
 
+#loop through every column
 for (i in 2:63){
 ii[,i] = str_sub(ii[,i], start = 1, end = 2)
 }
 
-i = ii
 
 
-pos = i[,1:21]
-neu = i[,c(1,22:43)]
-neg = i[,c(1,44:63)]
+#get the positive, neutral and negative condition in different data-frames for preprocessing:
+pos = ii[,1:21]
+neu = ii[,c(1,22:43)]
+neg = ii[,c(1,44:63)]
 
-
-ii$god.og.informativ.video = as.factor(ii$god.og.informativ.video)
 
 ```
 
 
 ```{r}
-#pos mean and sd
-w = pos
+#getting the mean and interquartile deivance for all the different comments in the positive condition:
 
+w = pos
 w[sapply(w, is.character)] <- lapply(w[sapply(w, is.character)], 
                                        as.numeric)
 pp = data.frame(t(w))
-
 pp[sapply(pp, is.character)] <- lapply(pp[sapply(pp, is.character)], 
                                        as.numeric)
+#empty vectors to store values:
 medianpos = 1:21
 quan_div_pos = 1:21
+#loop through every row (every question)
 for (i in 1:21){
 pp1 = pp[i,] 
 pp2 = data.frame(t(pp1))
@@ -84,18 +81,15 @@ medianpos[i] = pp3
 }
 
 pos1 = data.frame(medianpos, quan_div_pos)
-
-
 ```
 
 ```{r}
-#neu mean and sd
+#getting the mean and interquartile deivance for all the different comments in the Neutral condition:
+#same as for positive condition:
 w = neu
-
 w[sapply(w, is.character)] <- lapply(w[sapply(w, is.character)], 
                                        as.numeric)
 pp = data.frame(t(w))
-
 pp[sapply(pp, is.character)] <- lapply(pp[sapply(pp, is.character)], 
                                        as.numeric)
 
@@ -112,21 +106,18 @@ medianneu[i] = pp3
 }
 
 neu1 = data.frame(medianneu, quan_div_neu)
-
 ```
 
 
 ```{r}
-#neg mean and sd
+#getting the mean and interquartile deivance for all the different comments in the Negative condition:
+#again the same
 w = neg
-
 w[sapply(w, is.character)] <- lapply(w[sapply(w, is.character)], 
                                        as.numeric)
 pp = data.frame(t(w))
-
 pp[sapply(pp, is.character)] <- lapply(pp[sapply(pp, is.character)], 
                                        as.numeric)
-
 
 medianneg = 1:21
 quan_div_neg = 1:21
@@ -142,8 +133,6 @@ medianneg[i] = pp3
 }
 
 neg1 = data.frame(medianneg, quan_div_neg)
-
-
 ```
 
 
@@ -157,51 +146,45 @@ neg1 = data.frame(medianneg, quan_div_neg)
 
 
 ```{r}
-# to the model:
-
+# putting the three conditions together to make the data in a format that can be analysed together:
+#positive
 j = pos[,2:21]
-
 pop = pivot_longer(pos, 2:21)
-
 pop = pop %>% rename(con = name)
-
 pop$con = "conp"
 
-
+#neutral
 pop1 = pivot_longer(neu, 2:23)
-
 pop1 = pop1 %>% rename(con = name)
-
 pop1$con = "conneu"
 
-
+#negative
 pop2 = pivot_longer(neg, 2:21)
-
 pop2 = pop2 %>% rename(con = name)
-
 pop2$con = "conneg"
 
-
-
+#putting them together:
 popop = rbind(pop,pop1,pop2)
 
+#making the columns in the right format aswell as making the likert scale go from 1-8 because probit models need positive values:
 popop$value = as.numeric(popop$value)
-
 popop$value = popop$value+4
-
 popop$value = as.factor(popop$value)
 popop$con = as.factor(popop$con)
-
+#renaming
 popop$con = ifelse(popop$con == "conp", "Positive", ifelse(popop$con == "conneu", "Neutral", "Negative"))
-
+#more right formatting and making Neutral the reference condition:
 popop$value = as.numeric(popop$value)
 popop$con = as.factor(popop$con)
 popop$con = relevel(popop$con, ref = "Neutral")
 popop = popop %>% rename(Rating = value,
                          Condition = con,
                          ID = id)
+```
 
 
+```{r}
+#making the model:
 
 bm = bf(Rating ~ 1+Condition+(1|ID), family = cumulative("probit"))#+lf(disc~0+con, cmc = FALSE)
 
