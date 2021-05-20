@@ -224,7 +224,7 @@ mcmc_rank_overlay(main_m1, pars = c("b_conp", "b_conn"))
 
 posterior = posterior_samples(main_m0)
 
-
+#prior - posterior updates
 ggplot(posterior)+ geom_density(aes(posterior$b_conn, fill = "posterior"), colour = "red", alpha = .3)+
   geom_density(aes(posterior$prior_b_conn, fill = "prior"), colour = "blue", alpha = .5)+theme_classic()+xlab("standardized scale")+ggtitle("Prior - posterior update for the difference between Neutral and Negative condition")
 
@@ -232,7 +232,7 @@ ggplot(posterior)+ geom_density(aes(posterior$b_conp, fill = "posterior"), colou
   geom_density(aes(posterior$prior_b_conp, fill = "prior"), colour = "blue", alpha = .5)+theme_classic()+xlab("standardized scale")+ggtitle("Prior - posterior update for the difference between Neutral and Positive condition")
 
 
-
+#for the second model
 posterior1 = posterior_samples(main_m1)
 
 
@@ -280,7 +280,7 @@ loo_compare(main_m0, main_m1)
 
 
 ```{r}
-#tidshypotese.
+#time - hypothesis same preprocessing as above just with other columns (other responses)
 setwd("C:/Users/Jespe/OneDrive/Dokumenter/GitHub/soccult thingy/real_real")
 
 tbl <-
@@ -357,7 +357,7 @@ View(get_prior(time_m0, data = tphp2))
 View(get_prior(time_m1, data = tphp2))
 
 
-
+#priors
 prior_time_m00 = c(
    prior(normal(170,30), class = b, coef = conp),
    prior(normal(170,30), class = b, coef = conn),
@@ -365,9 +365,6 @@ prior_time_m00 = c(
    prior(normal(10,5), class = sd, group = id),
    prior(normal(1,0.5), class = sd, group = video),
    prior(normal(17,5), class = sigma))
-
-
-
 
 
 prior_time_m11 = c(
@@ -383,7 +380,7 @@ prior_time_m11 = c(
    prior(normal(17,5), class = sigma))
 
 
-
+#fitting
 
 time_prior_m0 = brm(
   time_m0,
@@ -454,7 +451,7 @@ mcmc_trace(time_model_m1, pars = c("b_conp", "b_conn", "b_conc"))
 mcmc_rank_overlay(time_model_m1, pars = c("b_conp", "b_conn", "b_conc"))
 
 
-
+#prior posterior updates
 
 posterior = posterior_samples(time_model_m0)
 
@@ -467,6 +464,7 @@ ggplot(posterior)+ geom_density(aes(posterior$b_conp, fill="posterior"), colour 
 ggplot(posterior)+ geom_density(aes(posterior$b_conn, fill="posterior"), colour = "red", alpha = .3)+
   geom_density(aes(posterior$prior_b_conn, fill = "prior"), colour = "blue", alpha = .5)+theme_classic()+xlab("perception of passage of time")+ggtitle("prior - posterior update for the Negative condition")
 
+#second model:
 
 posterior = posterior_samples(time_model_m1)
 
@@ -479,6 +477,7 @@ ggplot(posterior)+ geom_density(aes(posterior$b_conp, fill="posterior"), colour 
 ggplot(posterior)+ geom_density(aes(posterior$b_conn, fill="posterior"), colour = "red", alpha = .3)+
   geom_density(aes(posterior$prior_b_conn, fill = "prior"), colour = "blue", alpha = .5)+theme_classic()+xlab("perception of passage of time")+ggtitle("prior - posterior update for the Negative condition")
 
+#hypothesis testing
 
 
 hypothesis(time_model_m0, "conc>conn")
@@ -491,7 +490,7 @@ hypothesis(time_model_m1, "conc>conn")
 
 
 
-
+#model comparison
 
 
 
@@ -509,6 +508,7 @@ loo_compare(time_model_m0, time_model_m1)
 
 
 ```{r}
+#playing with the interaction model
 time = bf(tid ~ 0+con+con:chat+(1|id)+(1|video), family = gaussian())
 
 
@@ -553,6 +553,8 @@ tphp2 %>% group_by(con) %>% summarize(mean = mean(tid))
 
 
 ```{r}
+#same preprocessing for the last hypothesis.
+
 setwd("C:/Users/Jespe/OneDrive/Dokumenter/GitHub/soccult thingy/real_real")
 
 tbl <-
@@ -589,7 +591,7 @@ tbl2 <- tbl1[,c(2,28,32,38,42,64)]
 tbl2$con = substring(tbl2[1,1], first = 3, last = 3)
 tbl2[1,1] = substr(tbl2[1,1], start = 0, stop = 1)
 
-#only first hypothesis:
+
 ahp2 = tbl2
 ahp2$vid_nr = 2
 names(ahp2)[1] = "video"
@@ -606,7 +608,7 @@ tbl2 <- tbl1[,c(3,46,50,56,60,64)]
 tbl2$con = substring(tbl2[1,1], first = 3, last = 3)
 tbl2[1,1] = substr(tbl2[1,1], start = 0, stop = 1)
 
-#only first hypothesis:
+
 ahp3 = tbl2
 ahp3$vid_nr = 3
 names(ahp3)[1] = "video"
@@ -627,6 +629,11 @@ aphp2 = rbind(aphp1,aphp2)
 
 
 }
+```
+
+
+```{r}
+#now we make the actual thing we want to predict the absolute difference between the real answer and participants' answers
 
 svar_video2 = c(8,10,5,4)
 svar_video3 = c(10,15,16,7)
@@ -695,6 +702,9 @@ names(da)[6] = "chat"
 
 
 ```{r}
+
+#models
+
 correct_m0 = bf(value ~ 0+con+(1|id)+(1|name), family = gaussian())
 correct_m1 = bf(value ~ 0+con+(1|id)+(1|name), family = student())
 correct_m2 = bf(value ~ 0+con+(1|id)+(1|name), family = lognormal())
@@ -703,7 +713,6 @@ correct_m2 = bf(value ~ 0+con+(1|id)+(1|name), family = lognormal())
 View(get_prior(correct_m3, data = da))
 
 
-#change prior for sd in class b to 0.5
 prior_mem_m0 = c(
    #prior(normal(4,3), class = b),
    prior(normal(4.3,2), class = b, coef = conp),
@@ -840,8 +849,6 @@ mcmc_rank_overlay(model_correct_m1, pars = c("b_conp", "b_conn", "b_conc"))
 
 
 
-
-
 model_correct_m2 = brm(
   correct_m2,
   da,
@@ -872,7 +879,7 @@ mcmc_rank_overlay(model_correct_m2, pars = c("b_conp", "b_conn", "b_conc"))
 
 
 
-
+#prior - posterior updates:
 
 posterior = posterior_samples(model_correct_m1)
 
@@ -890,19 +897,7 @@ ggplot(posterior)+ geom_density(aes(posterior$b_conp, fill="posterior"), colour 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#log-normal prior - posterior updates:
 
 
 posterior = posterior_samples(model_correct_m2)
@@ -926,6 +921,9 @@ ggplot(posterior)+ geom_density(aes(posterior$b_conp, fill="posterior"), colour 
 
 
 ```{r}
+#playing with the interaction model for the log-normal model
+
+
 cor = bf(value ~ 0+con+con:chat+(1|id)+(1|name), family = lognormal())
 
 
