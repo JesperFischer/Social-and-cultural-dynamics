@@ -25,6 +25,8 @@ library(brms)
 library(psych)
 library(tidybayes)
 library(lavaan)
+library(MPsychoR)
+library(blavaan)
 
 
 ```
@@ -125,6 +127,7 @@ names(data)[2] = "chat"
 
 
 ```{r}
+#frequentist model:
 #getting the data in the right format:
 factor = pivot_wider(data, values_from = value, names_from = name)
 
@@ -137,5 +140,22 @@ summary(fit, fit.measures = TRUE, standardized = TRUE)
 
 
 
+```
+
+```{r}
+#baysian model:
+
+fitBCFA <- bcfa(model1, data = factor, burnin = 2000,
+                sample = 2000, n.chains = 4,
+                target = "stan",dp = dpriors(lambda = "normal(0.6,5)"))
+
+summary(fitBCFA, fit.measures = TRUE, standardized = TRUE)
+
+
+qq = ppmc(fitBCFA, thin = 5, fit.measures = c("cfi"))
+summary(qq)
+plot(qq, element = "cfi")
+
+plot(fitBCFA)
 ```
 
